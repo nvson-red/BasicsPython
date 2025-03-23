@@ -1,70 +1,61 @@
-# This is a sample Python script.
-
-# Press ⌃R to execute it or replace it with your code.
-# Press Double ⇧ to search everywhere for classes, files, tool windows, actions, and settings.
-
-
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press ⌘F8 to toggle the breakpoint.
-
-
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
-
 import os
-os.system("defaults write -g NSRequiresAquaSystemAppearance -bool No")
+import smtplib
+from email.mime.text import MIMEText
 
-import tkinter as tk
-import urllib.request
+from flask import Flask, request, flash, redirect, url_for, render_template
+from flask_mail import Mail, Message
 
-class Application(tk.Frame):
-    def __init__(self, master=None):
-        super().__init__(master)
-        self.pack()
-        self.create_widgets()
+secret_key = os.urandom(32)
 
-    def create_widgets(self):
-        self.label = tk.Label(text="PyMi.vn checker")
-        self.label.pack()
+app = Flask(__name__)
+app.secret_key = secret_key
 
-        self.entrythingy = tk.Entry()
-        self.entrythingy.pack()
+app.config.update(
+    MAIL_SERVER="smtp.gmail.com",
+    MAIL_PORT=587,
+    MAIL_USE_TLS=True,
+    MAIL_USERNAME="nvson.red@gmail.com",
+    MAIL_PASSWORD="hnwy yjez wuzr jqoj"  #Mk ung dung google
+)
 
-        self.contents = tk.StringVar()
-        self.entrythingy["textvariable"] = self.contents
-        self.entrythingy.bind("<Key-Return>", self.check_site)
+mail = Mail(app)
 
-        self.hi_there = tk.Button(self)
-        self.hi_there["text"] = (
-            "Check web site up/down." " Enter URL with http(s):"
-        )
-        self.hi_there["command"] = self.check_site
-        self.hi_there.pack()
+@app.route("/")
+def index():
+    data = {
+        "your_email": "nvson.red@gmail.com",
+        "password": "hnwy yjez wuzr jqoj"
+    }
+    return render_template("index.html", data=data)
 
-        self.quit = tk.Button(self, text="QUIT", command=root.destroy)
-        self.quit.pack()
+@app.route("/", methods=["GET", "POST"])
+def send_email():
+    if request.method == "POST":
+        sender_email = request.form["sender_email"]
+        # sender_password = request.form["sender_password"]
+        recipient_email = request.form["recipient_email"]
+        subject = request.form["subject"]
+        body = request.form["body"]
 
-    def check_site(self, event=None):
-        url = self.contents.get().strip() or "https://pymi.vn"
-        if not url.startswith("http"):
-            url = "http://{}".format(url)
+        try:
+            # Update the mail sender credentials dynamically
+            app.config.update(
+                MAIL_USERNAME=sender_email,
+                # MAIL_PASSWORD=sender_password
+            )
+            msg = Message(subject=subject,
+                          sender=sender_email,
+                          recipients=[recipient_email])
+            msg.body = body
+            mail.send(msg)
+            flash("Email sent successfully!", "success")
+        except Exception as e:
+            flash(f"Failed to send email: {str(e)}", "danger")
+        return redirect(url_for("send_email"))
 
-        # fake useragent as cloudflare block python agent
-        r = urllib.request.Request(
-            url,
-            method="HEAD",
-            headers={"User-Agent": "python-requests/2.23.0"},
-        )
-        resp = urllib.request.urlopen(r, timeout=2)
-        print("response: {} {}".format(resp.status, resp.url))
+    return """
+    Your HTML here (replace this string with the HTML template you posted above)
+    """
 
-
-root = tk.Tk()
-app = Application(master=root)
-app.master.title("My checker app")
-app.master.minsize(300, 200)
-app.mainloop()
+if __name__ == "__main__":
+    app.run(debug=True, host="127.0.0.1", port=5000)
